@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script
+  src="https://code.jquery.com/jquery-3.2.1.min.js"
+  integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+  crossorigin="anonymous"></script>
+    <script src="https://d3js.org/d3-request.v1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.2.7/cytoscape.min.js"></script>
+    <script src="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
+    <link href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet"/>
+    <link href="/static/graph.css" rel="stylesheet" type="text/css">
+<style>
+#cy {
+  width: 300px;
+  height: 300px;
+  display: block;
+}
+</style>
+    <title>PFAM Explorer: Family Graph</title>
+</head>
+<body>
+<div id="page">
+  <div class="container">
+    <h1 id="h">PFAM Family: {{title|safe}}</h1>
+    <br>
+    <input type="range" min="0" max="100" value="{{slider}}" class="slider"> 
+    <a id="sliderVal">{{slider}}</a>%
+    <p>
+    Each node represents a protein in this protein family. Edges represent how
+    similar any two proteins are when we remove the parts of the sequence contained
+    in the domain corresponding to this family.<br/>
+    Click on a node to see the UniProt entry associated with it.
+    </p>
+  </div>
+  <div class="row">
+  	<div clss="col-xs-12">
+    	<div id="cy"/>
+    </div>
+   </div>
+<script>
+  graphdata = JSON.parse('{{ data|safe }}')
+</script>
+<script src="/static/graph.js"></script>
+<script>
+$(document).ready(function () {
+  buildGraph({{slider}}/100)	
+  $('.slider').on('change', function() {
+    var x = $('.slider').val()
+    $('#sliderVal').html(x)
+    buildGraph(x/100)
+  })
+})
+</script>
+</body>
+</html>

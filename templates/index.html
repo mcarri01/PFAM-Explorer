@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script type="text/javascript" src="https://d3js.org/d3.v2.js"></script>
+    <script src="/static/d3.legend.js"></script>
+    <script tpye="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/randomcolor/0.5.2/randomColor.js"></script>
+    <script
+  src="https://code.jquery.com/jquery-3.2.1.min.js"
+  integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4="
+  crossorigin="anonymous"></script>
+    <script src="https://d3js.org/d3-request.v1.min.js"></script>
+    <script type="text/javascript" src="/static/pfam.js"></script>
+    <script src="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
+    <link href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet"/>
+    <link href="/static/style.css" rel="stylesheet" type="text/css">
+    <title>PFAM Explorer</title>
+</head>
+<body onload="main()">
+<div id="page">
+<div class="container">
+<h1>PFAM Explorer</h1>
+</div>
+    <div class="container">
+        <div class="row">
+        <hr/>
+        <div class="row">
+            <div class="col-xs-8">
+                <div id="svg"></div>
+            </div>
+            <div class="col-xs-4">
+              <div class="row">
+                <div id="input-section">
+                  <form class="form-style-8">
+                      <div class="row">
+                        <div class="col">
+                          Enter Threshold Value:<br>
+                          <input type="range" min="0" max="100" value="0" class="slider">
+                          <a id="sliderVal">0</a>
+                        </div>
+                      </div>
+                  </form>
+                </div>
+              </div>
+              <div class="row">
+                  <div class="col">
+                    <p>This plot gives an overview of similarity matrices for PFAM families up to
+                    size 50 (i.e. that contain 50 proteins) where all proteins within the family
+                    are known to share a common biological function. </p>
+                    <p>Each point on the plot represents a similarity matrix comparing
+                    every two proteins in a PFAM family. This matrix can be visualized
+                    by a network graph. </p>
+                    <p>
+                    Enter thresholds to remove edges from these graphs if similarity
+                    between two nodes is below that threshold. You can enter multiple
+                    thresholds to get an overview of what these graphs will look like in
+                    the scatter plot. </p>
+                  </div>
+              </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+  $(document).ready(function () {
+    $('.slider').each(function() { $(this).val(0)})
+    $('.slider').on('change', function() {
+      var x = $('.slider').val()
+      $('#sliderVal').html(x)
+    })
+  })
+function main() {
+    $(".form-style-8").submit(function(e) {
+        e.preventDefault();
+    });
+    // Setup area for svg element
+    var margin = {top: 20, right: 20, bottom: 50, left: 70},
+        width = 800 - margin.left - margin.right,
+        height = 600 - margin.top - margin.bottom;
+    var svg = d3.select("#svg")
+        .append("svg")
+        .attr("width", width)
+        .attr("style", "outline: thin solid grey;")
+        .attr("height", height);    
+
+    // Receive data from flask app
+    //var data = JSON.parse('{{ data|safe }}')
+    var data = JSON.parse('{{ data|safe }}')
+
+    //data = JSON.parse(data)
+    // convert to DataPoint class
+    let colors = []
+    colors = randomColor({count: 1})
+    let inputList = [String(0).concat(".0")]
+    let dataSet = initData(data, inputList, colors)
+    console.log(dataSet)
+    //let maxConnected = Math.max(...dataSet.map(x => x.getX()))
+    // let maxSize = Math.max(...dataSet.map(x => x.getY()))
+
+    // create scales for data values and axes
+    var xAxisScale = d3.scale.linear().domain([0, 50]).range([0, width * .80]);
+    var yAxisScale = d3.scale.linear().domain([0, 50]).range([height * .87, height *.05]);
+
+    var xAxis = d3.svg.axis()
+        .scale(xAxisScale)
+        .orient("bottom")
+
+    var yAxis = d3.svg.axis()
+      .scale(yAxisScale)
+      .orient("left")
+
+    // setup page & data into chart
+    var div = d3.select("body").append("div")   
+    .attr("class", "tooltip")               
+    .style("opacity", 0);
+
+    svg.append("g")
+       .attr("transform", "translate(50, 10)")
+       .attr("class", "axis")
+       .call(yAxis);
+
+    var xAxisTranslate = height * .90;
+
+    svg.append("g")
+        .attr("class", "axis")
+        .attr("transform", "translate(50, " + xAxisTranslate  +")")
+        .call(xAxis)
+
+    svg.append("text")
+    .attr("class", "x label")
+    .attr("text-anchor", "end")
+    .attr("x", width * .55)
+    .attr("y", height * .98)
+    .text("Number of Connected Components");
+
+    svg.append("text")
+    .attr("class", "y label")
+    .attr("text-anchor", "end")
+    .attr("x", -250)
+    .attr("y", 5)
+    .attr("dy", ".75em")
+    .attr("transform", "rotate(-90)")
+    .text("Size");
+
+    createCircles(dataSet, svg, xAxisScale, yAxisScale)
+
+    $(".slider").on("change", function() {
+            var input = $("input.slider").val()
+            $("input").css("cursor", "progress")
+            $("body").css("cursor", "progress")
+            $.ajax({
+                type: "POST",
+                url: "/threshold",
+                data: {data: input},
+                success: function(resp) {
+                    inputList = input.replace(/ /g,'').split(",")
+                    inputList = inputList.map(x => x.concat(".0"))
+                    colors = randomColor({count: inputList.length})
+                    dataSet = initData(JSON.parse(resp), inputList, colors)
+                    updateCircles(dataSet, svg, xAxisScale, yAxisScale)
+                    $("input").css("cursor", "default")
+                    $("body").css("cursor", "default")
+                },
+                dataType: "json"
+            })         
+        })
+}
+function createCircles(dataSet, svg, xAxisScale, yAxisScale) {
+    svg.selectAll("circles")
+        .data(dataSet)
+        .enter()
+        .append("circle")
+        .attr("cx", function(d) { return 50 + xAxisScale(d.getX()) })
+        .attr("cy", function(d) {return yAxisScale(d.getY()) })
+        .attr("r", 5)
+        .attr("fill", function(d) { return d.getColor() })
+        .attr("stroke", "black")
+        .on("mouseover", handleMouseOver)
+        .on("mouseleave", handleMouseOut)
+        .on("click", function(d) {
+            window.location.href = window.location.origin + "/graph/" + d.getFamily() + "/" + $("input.slider").val()
+        })
+}
+function updateCircles(dataSet, svg, xScale, yScale) {
+    var selection = svg.selectAll("circle").data(dataSet)
+        .attr("cx", function(d) { return 50 + xScale(d.getX()) })
+        .attr("cy", function(d) {return yScale(d.getY()) })
+        .attr("r", 5)
+        .attr("fill", function(d) { return d.getColor() })
+        .attr("stroke", "black")
+        .on("mouseover", handleMouseOver)
+        .on("mouseleave", handleMouseOut)
+        .on("click", function(d) {
+            window.location.href = window.location.origin + "/graph/" + d.getFamily() + "/" + $("input.slider").val()
+        })
+}
+</script>
+</body>
+</html>
