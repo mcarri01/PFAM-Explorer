@@ -1,10 +1,10 @@
-README Comp177 Final Project (PFAM Explorer)
+# README Comp177 Final Project (PFAM Explorer)
 
 Team Members:
 Matthew Carrington-Fair
 Daniel Meyer
 
-Title: PFAM Explorer
+## Title: PFAM Explorer
 
 This project was based off of Dan's research, so he contributed
 a lot in accumulating the protein family dataset for our
@@ -26,10 +26,12 @@ We also added final visual features and user interactions
 (slider to adjust thresholds for connected components).
 
 
-Link to video: https://vimeo.com/247540088
-Link to site: https://pfam-explorer.herokuapp.com/
+## Link to video:
+https://vimeo.com/247540088
+## Link to site: 
+https://pfam-explorer.herokuapp.com/
 
-References & Citations:
+## References & Citations:
 
 Altschul, S.F., Gish, W., Miller, W., Myers, E.W. & Lipman, D.J. (1990) "Basic local alignment search tool." J. Mol. Biol. 215:403-410. PubMed
 
